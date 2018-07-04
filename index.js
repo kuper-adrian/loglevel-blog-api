@@ -11,5 +11,5 @@ api.use(apiVersionSubPath, userRouter);
 api.use(apiVersionSubPath, postRouter);
 
 api.listen(PORT, () => {
-  console.log(`running v1 on port ${PORT}`)
+  console.log(`running ${apiVersionSubPath} on port ${PORT}`)
 });
