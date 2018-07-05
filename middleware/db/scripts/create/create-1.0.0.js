@@ -1,6 +1,7 @@
 /**
  * Script to create db structure and necessary db entries for version 1.0.0.
  */
+const packageVersion = require('../../../../package.json').version;
 
 const dbVersion = '1.0.0';
 // TODO unique and nullable
@@ -112,7 +113,7 @@ const DB_SCHEMA = {
           type: 'INT',
           primary: true,
         },
-        name: {
+        test: {
           name: 'name',
           type: 'TEXT',
         }
@@ -150,30 +151,38 @@ if (packageVersion !== dbVersion) {
   throw new Error(`Package version (${packageVersion}) does not match version of db that is supposed to be created (${dbVersion})`);
 }
 
-
 const createTable = (knex, table) => {
-  return knex.hasSchema(table.name)
+  return knex.schema.hasTable(table.name)
     .then((exists) => {
       // reject promise if table already exists
-      if (!exists) {
+      if (exists) {
         return Promise.reject(new Error(`Cant't create table ${table.name} which already exists!`));
       }
-
+      console.log(`creating table ${table.name}`)
       // else create table according to schema object
       return knex.schema.createTable(table.name, (t) => {
         // iterate over every column
-        Object.keys(table.columns).forEach((col) => {
-          // and create it as specified...
+        Object.keys(table.columns).forEach((key) => {
+          const col = table.columns[key];
+          console.log(`creating column ${col.name}`);
 
+        
+          // and create it as specified...
           if (col.primary !== undefined && col.primary) {
             t.increments(col.name).primary();
             return;
           }
 
           if (col.foreignKey !== undefined) {
+            console.log('foreign key!')
             if (col.foreignKey.references === undefined || col.foreignKey.inTable === undefined) {
+              console.log('invalid')
               return Promise.reject(new Error('invalid foreign key specified'));
             }
+            
+            console.log('create column itself')
+            t.integer(col.name);
+            console.log('and reference')
             t.foreign(col.name).references(col.foreignKey.references).inTable(col.foreignKey.inTable);
             return;
           }
@@ -192,9 +201,12 @@ const createTable = (knex, table) => {
     })
 }
 
+
+
 const createDbInfoTable = (knex) => {
   return createTable(knex, DB_SCHEMA.tables.dbInfo)
     .then(() => {
+      console.log('creating db info entry');
       return knex(DB_SCHEMA.tables.dbInfo.name).insert({
         version: dbVersion,
         created: (new Date()).toISOString(),
@@ -202,9 +214,10 @@ const createDbInfoTable = (knex) => {
     })
 }
 
-const createUserTable = (knex, trx) => {
+const createUserTable = (knex) => {
   return createTable(knex, DB_SCHEMA.tables.user)
     .then(() => {
+      console.log('creating admin user entry');
       // create the only user 
       return knex(DB_SCHEMA.tables.user.name).insert({
         // TODO add admin user with parameters from command line
@@ -212,16 +225,16 @@ const createUserTable = (knex, trx) => {
     })
 }
 
-const createBlogPostTable = (knex, trx) => {
-
+const createBlogPostTable = (knex) => {
+  return createTable(knex, DB_SCHEMA.tables.blogPost);
 }
 
-const createTagTable = (knex, trx) => {
-
+const createTagTable = (knex) => {
+  return createTagTable(knex, DB_SCHEMA.tables.tag);
 }
 
-const createBlogPostTagJunctionTable = (knex, trx) => {
-
+const createBlogPostTagJunctionTable = (knex) => {
+  return createTable(knex, DB_SCHEMA.tables.blogPostTagJunction);
 }
 
 /**
@@ -229,11 +242,11 @@ const createBlogPostTagJunctionTable = (knex, trx) => {
  * @param {knex} knex 
  */
 exports.create = (knex) => {
-  return createTable(knex, DB_SCHEMA.tables.dbInfo) 
-    .then(() => createTable(knex, DB_SCHEMA.tables.user))
-    .then(() => createTable(knex, DB_SCHEMA.tables.blogPost))
-    .then(() => createTable(knex, DB_SCHEMA.tables.tag))
-    .then(() => createTable(knex, DB_SCHEMA.tables.blogPostTagJunction))
+  return createDbInfoTable(knex)
+    .then(() => createUserTable(knex))
+    .then(() => createBlogPostTable(knex))
+    .then(() => createTagTable(knex))
+    .then(() => createBlogPostTagJunctionTable(knex))
 
     .catch((error) => {
       // TODO logging
