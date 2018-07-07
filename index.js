@@ -25,14 +25,14 @@ api.use(apiVersionSubPath, userRouter);
 api.use(apiVersionSubPath, postRouter);
 
 dbClient.init()
-    .then(() => {
-      api.listen(PORT, () => {
-        console.log(`running ${apiVersionSubPath} on port ${PORT}`)
-      });
-    })
-    .catch((error) => {
-      console.log('Initialisation failed!');
-      console.log(error.message);
+  .then(() => {
+    api.listen(PORT, () => {
+      console.log(`running ${apiVersionSubPath} on port ${PORT}`)
     });
+  })
+  .catch((error) => {
+    console.log('Initialisation failed!');
+    console.log(error.message);
+  });
 
 
