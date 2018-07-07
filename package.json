@@ -22,5 +22,10 @@
     "jsonwebtoken": "^8.3.0",
     "knex": "^0.14.6",
     "sqlite3": "^4.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-plugin-import": "^2.12.0"
   }
 }
