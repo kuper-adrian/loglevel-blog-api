@@ -1,5 +1,5 @@
 const express = require('express');
-// const commandLineArgs = require('command-line-args')
+const commandLineArgs = require('command-line-args');
 
 const dbClient = require('./middleware/db/db-client');
 
@@ -11,20 +11,17 @@ const PORT = 9002;
 const apiVersionSubPath = '/v1';
 
 
-// const cmdArgDefinitions = [
-//   { name: 'user', alias: 'u', type: String },
-//   { name: 'password', alias: 'p', type: String },
-// ];
+const cmdArgDefinitions = [
+  { name: 'user', alias: 'u', type: String },
+  { name: 'password', alias: 'p', type: String },
+];
 
-// const cmdArgs = commandLineArgs(cmdArgDefinitions);
-
-// console.log(cmdArgs.user);
-// console.log(cmdArgs.password);
+const cmdArgs = commandLineArgs(cmdArgDefinitions);
 
 api.use(apiVersionSubPath, userRouter);
 api.use(apiVersionSubPath, postRouter);
 
-dbClient.init()
+dbClient.init({ nickname: cmdArgs.user, password: cmdArgs.password })
   .then(() => {
     api.listen(PORT, () => {
       console.log(`running ${apiVersionSubPath} on port ${PORT}`);

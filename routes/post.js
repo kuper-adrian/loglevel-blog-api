@@ -32,8 +32,7 @@ console.log(foo); // yeah!
 
 
 And here is some silly math:
-e^πi^ + 1 = 0 and H~2~O.
-    `;
+e^πi^ + 1 = 0 and H~2~O.`;
 
     const result = {
       type: 'post',
