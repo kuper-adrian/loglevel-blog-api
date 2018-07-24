@@ -11,12 +11,6 @@ exports.init = () => {
     throw new Error('No private key for jwt');
   }
 
-  const guidNamespace = fs.readFileSync('../secrets/guid-namespace');
-  if (!guidNamespace) {
-    throw new Error('No GUID namespace');
-  }
-
   exports.publicJwtCert = publicJwtCert;
   exports.privateJwtKey = privateJwtKey;
-  exports.guidNamespace = guidNamespace;
 };
