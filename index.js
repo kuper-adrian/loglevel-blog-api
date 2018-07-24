@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const commandLineArgs = require('command-line-args');
 
 const secrets = require('./services/secrets');
-const dbClient = require('./middleware/db/db-client');
+const dbClient = require('./services/db/db-client');
 
 const userRouter = require('./routes/user');
 const postRouter = require('./routes/post');

@@ -3,7 +3,7 @@ const packageVersion = require('../../package.json').version;
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const bcrypt = require('bcrypt');
-const uuidv1 = require('uuid/v1');
+const moment = require('moment');
 let knex = require('knex');
 
 const SALT_ROUNDS = 10;
@@ -76,7 +76,6 @@ exports.init = function init(initialUser) {
       knex('DbInfo').insert({
         version: packageVersion,
         created: creationDate,
-        guidNamespace: uuidv1(),
       })
 
         .then(() => bcrypt.hash(initialUser.password, SALT_ROUNDS))
@@ -102,14 +101,12 @@ exports.init = function init(initialUser) {
 exports.getRegisteredUser = (username, plainPassword) => {
   let user = null;
 
-  return knex.select('nickname', 'password').from('User').where({ nickname: username })
+  return knex('User').where({ nickname: username })
     .then((rows) => {
       if (rows.length === 0) return null;
 
       const bcryptHash = rows[0].password;
-      user = {
-        nickname: rows[0].nickname,
-      };
+      [user] = rows;
 
       return bcrypt.compare(plainPassword, bcryptHash);
     })
@@ -122,5 +119,10 @@ exports.getRegisteredUser = (username, plainPassword) => {
     });
 };
 
-exports.getGuidNamespace = () => knex.select('guidNamespace').from('DbInfo')
-  .then(rows => rows[0].guidNamespace);
+exports.saveRefreshToken = (refreshToken, userId) =>
+  knex('RefreshToken').insert({
+    uuid: refreshToken,
+    expires: moment().add(1, 'days').toISOString(),
+    created: moment().toISOString(),
+    userId,
+  });

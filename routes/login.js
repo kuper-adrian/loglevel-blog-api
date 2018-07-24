@@ -1,8 +1,8 @@
 const express = require('express');
-const dbClient = require('../middleware/db/db-client');
+const dbClient = require('../services/db/db-client');
 const jwt = require('jsonwebtoken');
-const uuidv5 = require('uuid/v5');
-
+const uuidv1 = require('uuid/v1');
+const secrets = require('../services/secrets');
 
 const router = express.Router();
 
@@ -18,18 +18,27 @@ router.post('/login', (req, res) => {
   dbClient.getRegisteredUser(req.body.username, req.body.password)
     .then((user) => {
       if (user) {
-        // TODO handle signing secret
-        accessToken = jwt.sign({ nick: user.nickname }, 'shhhhh');
-
-        if (!guidNamespace) {
-          // get namespace from db
-        }
-
-        // TODO create GUID for refresh token
+        accessToken = jwt.sign({ nick: user.nickname }, secrets.privateJwtKey, { algorithm: 'RS256' });
+        refreshToken = uuidv1();
         // add token to database
-      } else {
-        res.status(401).send('invalid credentials');
+        return dbClient.saveRefreshToken(refreshToken, user.id);
       }
+
+      res.status(401).send('invalid credentials');
+      return Promise.reject(new Error('Invalid credentials passed'));
+    })
+
+    .then(() => {
+      // refresh token is saved in database!
+      // send tokens to client
+      res.status(200).json({
+        accessToken,
+        refreshToken,
+      });
+    })
+
+    .catch((error) => {
+      console.log(error.message);
     });
 });
 
