@@ -126,3 +126,7 @@ exports.saveRefreshToken = (refreshToken, userId) =>
     created: moment().toISOString(),
     userId,
   });
+
+exports.doesUserExist = nickname =>
+  knex('User').where({ nickname })
+    .then(rows => rows.length === 1);

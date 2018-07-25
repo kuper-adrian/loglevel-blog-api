@@ -1,8 +1,8 @@
 const express = require('express');
 const { Base64 } = require('js-base64');
+const checkAccess = require('../middleware/checkAccess');
 
 const router = express.Router();
-
 
 router.route('/post/:id')
 
@@ -132,6 +132,10 @@ router.route('/post')
     ];
 
     res.json(dummyEntries);
+  })
+
+  .post(checkAccess, (req, res) => {
+    res.send('You are allowed!!');
   });
 
 module.exports = router;
