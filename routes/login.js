@@ -18,7 +18,17 @@ router.post('/login', (req, res) => {
   dbClient.getRegisteredUser(req.body.username, req.body.password)
     .then((user) => {
       if (user) {
-        accessToken = jwt.sign({ nick: user.nickname }, secrets.privateJwtKey, { algorithm: 'RS256' });
+        accessToken = jwt.sign(
+          {
+            nick: user.nickname,
+          },
+          secrets.privateJwtKey,
+          {
+            algorithm: 'RS256',
+            expiresIn: '10 minutes',
+          },
+        );
+
         refreshToken = uuidv1();
         // add token to database
         return dbClient.saveRefreshToken(refreshToken, user.id);
