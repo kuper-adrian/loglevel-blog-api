@@ -9,6 +9,8 @@ router.route('/post/:id')
   .get((req, res) => {
     console.log('post get');
 
+    const postId = req.params.id;
+
     const stubAsciiDoc = `
 Try AsciiDoc
 ------------
@@ -46,25 +48,35 @@ e^πi^ + 1 = 0 and H~2~O.`;
       ],
       author: {
         name: 'TODO',
-        link: '/TODO',
       },
+      actions: {},
     };
+
+    if (req.loglevel.auth.user) {
+      result.actions = {
+        edit: {
+          href: `post/${postId}`,
+          type: 'PUT',
+        },
+        delete: {
+          href: `post/${postId}`,
+          type: 'DELETE',
+        },
+      };
+    }
 
     res.json(result);
   })
 
-  .post((req, res) => {
-    console.log('post post');
-    res.send('post post');
-  })
-
-  .put((req, res) => {
-    console.log('post put');
+  .put(checkAccess, (req, res) => {
+    const postId = req.params.id;
+    console.log(`put request for post ${postId}`);
     res.send('put post');
   })
 
-  .delete((req, res) => {
-    console.log('post delete');
+  .delete(checkAccess, (req, res) => {
+    const postId = req.params.id;
+    console.log(`delete request for post ${postId}`);
     res.send('delete post');
   });
 
@@ -132,10 +144,6 @@ router.route('/post')
     ];
 
     res.json(dummyEntries);
-  })
-
-  .post(checkAccess, (req, res) => {
-    res.send('You are allowed!!');
   });
 
 module.exports = router;

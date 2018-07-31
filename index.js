@@ -5,6 +5,9 @@ const commandLineArgs = require('command-line-args');
 const secrets = require('./services/secrets');
 const dbClient = require('./services/db/db-client');
 
+const prepareRequest = require('./middleware/prepareRequest');
+const parseAuthInfo = require('./middleware/parseAuthInfo');
+
 const userRouter = require('./routes/user');
 const postRouter = require('./routes/post');
 const loginRouter = require('./routes/login');
@@ -22,6 +25,9 @@ const cmdArgDefinitions = [
 const cmdArgs = commandLineArgs(cmdArgDefinitions);
 
 api.use(bodyParser.json());
+
+api.use(prepareRequest);
+api.use(parseAuthInfo);
 
 api.use(apiVersionSubPath, userRouter);
 api.use(apiVersionSubPath, postRouter);
