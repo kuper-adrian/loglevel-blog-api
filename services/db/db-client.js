@@ -6,6 +6,8 @@ const bcrypt = require('bcrypt');
 const moment = require('moment');
 let knex = require('knex');
 
+const logger = require('../../services/logger').getLogger();
+
 const SALT_ROUNDS = 10;
 
 const dataFolderPath = './data';
@@ -114,19 +116,66 @@ exports.getRegisteredUser = (username, plainPassword) => {
     .then(passwordMatch => (passwordMatch ? user : null))
 
     .catch((error) => {
-      console.log(error);
+      logger.error(error);
       return null;
     });
 };
 
-exports.saveRefreshToken = (refreshToken, userId) =>
-  knex('RefreshToken').insert({
-    uuid: refreshToken,
-    expires: moment().add(1, 'days').toISOString(),
-    created: moment().toISOString(),
-    userId,
-  });
+exports.saveRefreshToken = (refreshToken, userId) => {
+  if (!refreshToken || !userId) {
+    return Promise.reject(new Error('invalid parameters'));
+  }
+
+  return knex.transaction(trx =>
+    knex('RefreshToken')
+      .transacting(trx)
+      .delete()
+      .where({
+        userId,
+      })
+
+      .then(() =>
+        knex('RefreshToken')
+          .transacting(trx)
+          .insert({
+            uuid: refreshToken,
+            expires: moment().add(1, 'days').toISOString(),
+            created: moment().toISOString(),
+            userId,
+          }))
+
+      .then(trx.commit)
+      .catch(trx.rollback));
+};
 
 exports.doesUserExist = nickname =>
   knex('User').where({ nickname })
     .then(rows => rows.length === 1);
+
+exports.getUserByNickname = (nickname) => {
+  if (!nickname) {
+    return Promise.reject(new Error('nickname parameter required!'));
+  }
+
+  return knex('User').where({ nickname })
+    .then((rows) => {
+      if (rows.length === 0) {
+        return null;
+      }
+      return rows[0];
+    });
+};
+
+exports.getRefreshToken = (userId) => {
+  if (!userId) {
+    return Promise.reject(new Error('invalid parameters'));
+  }
+
+  return knex('RefreshToken').where({ userId })
+    .then((rows) => {
+      if (rows.length === 0) {
+        return null;
+      }
+      return rows[0];
+    });
+};

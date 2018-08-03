@@ -7,8 +7,6 @@ const router = express.Router();
 router.route('/post/:id')
 
   .get((req, res) => {
-    console.log('post get');
-
     const postId = req.params.id;
 
     const stubAsciiDoc = `
@@ -70,13 +68,13 @@ e^πi^ + 1 = 0 and H~2~O.`;
 
   .put(checkAccess, (req, res) => {
     const postId = req.params.id;
-    console.log(`put request for post ${postId}`);
+    // TODO get json from body and update database
     res.send('put post');
   })
 
   .delete(checkAccess, (req, res) => {
     const postId = req.params.id;
-    console.log(`delete request for post ${postId}`);
+    // TODO delete blog post from database
     res.send('delete post');
   });
 

@@ -4,13 +4,16 @@ const commandLineArgs = require('command-line-args');
 
 const secrets = require('./services/secrets');
 const dbClient = require('./services/db/db-client');
+const logger = require('./services/logger').getLogger();
 
+const logRequest = require('./middleware/logRequest');
 const prepareRequest = require('./middleware/prepareRequest');
 const parseAuthInfo = require('./middleware/parseAuthInfo');
 
 const userRouter = require('./routes/user');
 const postRouter = require('./routes/post');
 const loginRouter = require('./routes/login');
+const refreshRouter = require('./routes/refresh');
 
 const api = express();
 const PORT = 9002;
@@ -26,12 +29,14 @@ const cmdArgs = commandLineArgs(cmdArgDefinitions);
 
 api.use(bodyParser.json());
 
+api.use(logRequest);
 api.use(prepareRequest);
 api.use(parseAuthInfo);
 
 api.use(apiVersionSubPath, userRouter);
 api.use(apiVersionSubPath, postRouter);
 api.use(apiVersionSubPath, loginRouter);
+api.use(apiVersionSubPath, refreshRouter);
 
 // send 404 for all other requests
 api.get('*', (req, res) => {
@@ -43,11 +48,11 @@ dbClient.init({ nickname: cmdArgs.user, password: cmdArgs.password })
     secrets.init();
 
     api.listen(PORT, () => {
-      console.log(`running ${apiVersionSubPath} on port ${PORT}`);
+      logger.info(`running ${apiVersionSubPath} on port ${PORT}`);
     });
   })
 
   .catch((error) => {
-    console.log('Initialisation failed!');
-    console.log(error.message);
+    logger.error('Initialisation failed!');
+    logger.error(error);
   });

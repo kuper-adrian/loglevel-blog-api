@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const secrets = require('../services/secrets');
 const dbClient = require('../services/db/db-client');
+const logger = require('../services/logger').getLogger();
 
 const setAuthInfo = (req, user) => {
   req.loglevel.auth = {
@@ -9,11 +10,11 @@ const setAuthInfo = (req, user) => {
 };
 
 module.exports = /* options => */ (req, res, next) => {
-  console.log('Entered middleware: parseAuthInfo');
+  logger.debug('Entered middleware: parseAuthInfo');
 
   const authHeader = req.get('Authorization');
   if (!authHeader) {
-    console.log('no auth header!');
+    logger.debug('no auth header!');
     setAuthInfo(req, undefined);
     next();
     return;
@@ -21,7 +22,7 @@ module.exports = /* options => */ (req, res, next) => {
 
   const parts = authHeader.split('Bearer ');
   if (parts.length !== 2) {
-    console.log('invalid header content');
+    logger.debug('invalid header content');
     setAuthInfo(req, undefined);
     next();
     return;
@@ -29,7 +30,7 @@ module.exports = /* options => */ (req, res, next) => {
 
   const accessToken = parts[1];
   if (!accessToken) {
-    console.log('no access token');
+    logger.debug('no access token');
     setAuthInfo(req, undefined);
     next();
     return;
@@ -40,8 +41,8 @@ module.exports = /* options => */ (req, res, next) => {
   try {
     jwtPayload = jwt.verify(accessToken, secrets.publicJwtCert, { algorithms: ['RS256'] });
   } catch (err) {
-    console.log('access token invalid!');
-    console.log(err);
+    logger.info('access token invalid!');
+    logger.debug(err);
     setAuthInfo(req, undefined);
     next();
     return;
@@ -61,7 +62,7 @@ module.exports = /* options => */ (req, res, next) => {
       }
     })
     .catch((error) => {
-      console.log(error);
+      logger.error(error);
       res.status(500).send();
     });
 };

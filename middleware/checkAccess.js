@@ -1,6 +1,7 @@
+const logger = require('../services/logger').getLogger();
 
 module.exports = /* options => */ (req, res, next) => {
-  console.log('Entered middleware: checkAccess');
+  logger.debug('Entered middleware: checkAccess');
 
   if (!req.loglevel.auth.user) {
     res.status(401).send();
