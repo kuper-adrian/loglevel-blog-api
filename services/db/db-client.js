@@ -230,3 +230,70 @@ exports.getBlogPostById = (postId) => {
       return null;
     });
 };
+
+/**
+ *
+ * @param {Integer} page Zero-based page number
+ * @param {Integer} count Amount of blog post previews
+ */
+exports.getBlogPostPreviews = (page, count = 5) => {
+  const previewMap = {};
+  const blogPostIds = [];
+  const offset = count * page;
+
+  return knex('BlogPost')
+    .join('User', 'BlogPost.authorId', 'User.id')
+    .select(
+      'BlogPost.id',
+      'BlogPost.title',
+      'BlogPost.plug',
+      'BlogPost.published',
+      'User.firstName',
+      'User.lastName',
+    )
+    .orderBy('BlogPost.published', 'desc')
+    .limit(count)
+    .offset(offset)
+
+    .then((rows) => {
+      for (let i = 0; i < rows.length; i += 1) {
+        const element = rows[i];
+
+        previewMap[element.id] = {
+          id: element.id,
+          title: element.title,
+          plug: element.plug,
+          tags: [],
+          publishedAt: element.published,
+          author: {
+            name: `${element.firstName} ${element.lastName}`,
+          },
+        };
+        blogPostIds.push(element.id);
+      }
+
+      // get tags for blog posts
+      return knex('BlogPost')
+        .join('BlogPostTagJunction', 'BlogPost.id', 'BlogPostTagJunction.blogPostId')
+        .join('Tag', 'BlogPostTagJunction.tagId', 'Tag.id')
+        .select('BlogPost.id', 'Tag.name')
+        .whereIn('BlogPost.id', blogPostIds);
+    })
+
+    .then((rows) => {
+      // add tags to posts
+      for (let i = 0; i < rows.length; i += 1) {
+        const element = rows[i];
+        previewMap[element.id].tags.push(element.name);
+      }
+
+      const result = [];
+      Object.keys(previewMap).forEach(key => result.push(previewMap[key]));
+      return result;
+    })
+
+    .catch((error) => {
+      logger.error(error);
+      return null;
+    });
+};
