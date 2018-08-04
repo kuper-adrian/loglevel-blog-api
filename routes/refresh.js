@@ -1,6 +1,7 @@
 const express = require('express');
 const tokenService = require('../services/tokens');
 const logger = require('../services/logger').getLogger();
+const { FaultError } = require('../models/BreakErrors');
 
 const router = express.Router();
 
@@ -8,6 +9,7 @@ router.route('/refresh')
   .post((req, res) => {
     if (!req.body.username || !req.body.refreshToken) {
       res.send(400).send('username and refresh token required');
+      return;
     }
 
     const { username, refreshToken } = req.body;
@@ -16,10 +18,8 @@ router.route('/refresh')
     tokenService.isRefreshTokenValid(username, refreshToken)
       .then((user) => {
         if (!user) {
-          res.status(401).send('invalid refresh token');
-          return Promise.reject(new Error('Invalid refresh token'));
+          return Promise.reject(new FaultError('Invalid refresh token', 401));
         }
-
         return tokenService.generateNewTokens(user);
       })
 
@@ -28,8 +28,13 @@ router.route('/refresh')
       })
 
       .catch((error) => {
-        logger.error(error);
-        res.status(500).send();
+        if (error instanceof FaultError) {
+          logger.info(error.message);
+          res.status(error.httpStatus).send(error.message);
+        } else {
+          logger.error(error);
+          res.status(500).send();
+        }
       });
   });
 

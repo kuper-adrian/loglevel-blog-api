@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const moment = require('moment');
 let knex = require('knex');
 
+const { BreakError } = require('../../models/BreakErrors');
 const logger = require('../../services/logger').getLogger();
 
 const SALT_ROUNDS = 10;
@@ -177,5 +178,55 @@ exports.getRefreshToken = (userId) => {
         return null;
       }
       return rows[0];
+    });
+};
+
+exports.getBlogPostById = (postId) => {
+  let blogPost = {};
+
+  return knex('BlogPost')
+    .join('User', 'BlogPost.authorId', 'User.id')
+    .where('BlogPost.id', postId)
+    .select(
+      'BlogPost.id',
+      'BlogPost.title',
+      'BlogPost.plug',
+      'BlogPost.text',
+      'BlogPost.published',
+      'User.firstName',
+      'User.lastName',
+    )
+
+    .then((rows) => {
+      if (rows.length === 0) {
+        return Promise.reject(new BreakError('Post not found'));
+      }
+      [blogPost] = rows;
+
+      return knex('BlogPost')
+        .join('BlogPostTagJunction', 'BlogPost.id', 'BlogPostTagJunction.blogPostId')
+        .join('Tag', 'BlogPostTagJunction.tagId', 'Tag.id')
+        .where('BlogPost.id', blogPost.id)
+        .select('Tag.name');
+    })
+
+    .then((tags) => {
+      blogPost.tags = [];
+
+      for (let i = 0; i < tags.length; i += 1) {
+        const tag = tags[i];
+        blogPost.tags.push(tag.name);
+      }
+
+      return blogPost;
+    })
+
+    .catch((error) => {
+      if (error instanceof BreakError) {
+        logger.info(error.message);
+      } else {
+        logger.error(error);
+      }
+      return null;
     });
 };

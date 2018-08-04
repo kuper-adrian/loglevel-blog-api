@@ -1,6 +1,9 @@
+/* eslint no-param-reassign: ["error", { "props": false }] */
+
 const express = require('express');
 const { Base64 } = require('js-base64');
 const checkAccess = require('../middleware/checkAccess');
+const dbClient = require('../services/db/db-client');
 
 const router = express.Router();
 
@@ -9,61 +12,30 @@ router.route('/post/:id')
   .get((req, res) => {
     const postId = req.params.id;
 
-    const stubAsciiDoc = `
-Try AsciiDoc
-------------
+    dbClient.getBlogPostById(postId)
+      .then((blogPost) => {
+        blogPost.actions = {};
 
-There is _no reason_ to prefer http://daringfireball.net/projects/markdown/[Markdown]:
-it has *all the features*
-footnote:[See http://asciidoc.org/userguide.html[the user guide].]
-and more!
+        // if user is authenticated, add possible actions
+        if (req.loglevel.auth.user) {
+          blogPost.actions = {
+            edit: {
+              href: `post/${postId}`,
+              type: 'PUT',
+            },
+            delete: {
+              href: `post/${postId}`,
+              type: 'DELETE',
+            },
+          };
+        }
 
-NOTE: Great projects use it, including Git, WeeChat and Pacman!
+        res.status(200).json(blogPost);
+      })
 
-=== Comparison
-
-=== Ruby code to render AsciiDoc
-
-[source,javascript]
-----
-var foo = 'some variable'; // some comment
-console.log(foo); // yeah!
-----
-
-
-And here is some silly math:
-e^πi^ + 1 = 0 and H~2~O.`;
-
-    const result = {
-      type: 'post',
-      title: 'TODO',
-      plug: 'TODO',
-      text: Base64.encode(stubAsciiDoc),
-      publishedAt: 'TODO',
-      tags: [
-        'javascript',
-        'testing',
-      ],
-      author: {
-        name: 'TODO',
-      },
-      actions: {},
-    };
-
-    if (req.loglevel.auth.user) {
-      result.actions = {
-        edit: {
-          href: `post/${postId}`,
-          type: 'PUT',
-        },
-        delete: {
-          href: `post/${postId}`,
-          type: 'DELETE',
-        },
-      };
-    }
-
-    res.json(result);
+      .catch((error) => {
+        res.status(200).send(error.message);
+      });
   })
 
   .put(checkAccess, (req, res) => {

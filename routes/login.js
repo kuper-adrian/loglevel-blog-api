@@ -2,19 +2,20 @@ const express = require('express');
 const dbClient = require('../services/db/db-client');
 const tokenService = require('../services/tokens');
 const logger = require('../services/logger').getLogger();
+const { FaultError } = require('../models/BreakErrors');
 
 const router = express.Router();
 
 router.post('/login', (req, res) => {
   if (!req.body || !req.body.username || !req.body.password) {
     res.status(400).send('Username and password required!');
+    return;
   }
 
   dbClient.getRegisteredUser(req.body.username, req.body.password)
     .then((user) => {
       if (!user) {
-        res.status(401).send('invalid credentials');
-        return Promise.resolve(null);
+        return Promise.reject(new FaultError('invalid credentials', 401));
       }
       return tokenService.generateNewTokens(user);
     })
@@ -28,8 +29,13 @@ router.post('/login', (req, res) => {
     })
 
     .catch((error) => {
-      logger.info(error.message);
-      res.status(500).send();
+      if (error instanceof FaultError) {
+        logger.info(error.message);
+        res.status(error.httpStatus).send(error.message);
+      } else {
+        logger.error(error.message);
+        res.status(500).send();
+      }
     });
 });
 
