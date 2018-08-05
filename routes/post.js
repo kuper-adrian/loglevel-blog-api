@@ -1,7 +1,6 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 
 const express = require('express');
-const { Base64 } = require('js-base64');
 const checkAccess = require('../middleware/checkAccess');
 const dbClient = require('../services/db/db-client');
 const logger = require('../services/logger').getLogger();
@@ -9,7 +8,6 @@ const logger = require('../services/logger').getLogger();
 const router = express.Router();
 
 router.route('/post/:id')
-
   .get((req, res) => {
     const postId = req.params.id;
 
@@ -43,24 +41,62 @@ router.route('/post/:id')
   .put(checkAccess, (req, res) => {
     const postId = req.params.id;
     // TODO get json from body and update database
-    res.send('put post');
+    res.send('TODO put blog post');
   })
 
   .delete(checkAccess, (req, res) => {
     const postId = req.params.id;
-    // TODO delete blog post from database
-    res.send('delete post');
+    if (!postId) {
+      res.status(400).send('no post id given');
+      return;
+    }
+
+    dbClient.deleteBlogPost(postId)
+      .then((count) => {
+        // check if a blog post was actually deleted or not
+        if (count === 0) {
+          logger.debug('no posts found');
+          res.status(200).send('post not found');
+        } else {
+          res.status(200).send('Post successfully deleted');
+        }
+      })
+
+      .catch((error) => {
+        logger.error(error);
+        res.status(500).send('Unable to delete post');
+      });
   });
 
 router.route('/post')
 
   .get((req, res) => {
-    // TODO change result based on req.query.page
-    // TODO db access
+    const page = !req.query.page ? 0 : Number(req.query.page);
+    const pageSize = 5;
+    logger.debug(`get page ${page}, size ${pageSize}`);
 
-    dbClient.getBlogPostPreviews(0, 5)
-      .then((previews) => {
-        previews.forEach((preview) => {
+    dbClient.getBlogPostPreviews(page, pageSize)
+      .then((result) => {
+        const previousPageExists = page > 0;
+        const nextPageExists = pageSize + (pageSize * page) < result.blogPostTotal;
+
+        result.actions = {};
+
+        if (previousPageExists) {
+          result.actions.previous = {
+            href: `post?page=${page - 1}`,
+            method: 'GET',
+          };
+        }
+
+        if (nextPageExists) {
+          result.actions.next = {
+            href: `post?page=${page + 1}`,
+            method: 'GET',
+          };
+        }
+
+        result.previews.forEach((preview) => {
           // add actions
           preview.actions = {
             read: {
@@ -82,7 +118,7 @@ router.route('/post')
           }
         });
 
-        res.status(200).send(previews);
+        res.status(200).send(result);
       })
 
       .catch((error) => {

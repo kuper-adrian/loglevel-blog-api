@@ -241,19 +241,28 @@ exports.getBlogPostPreviews = (page, count = 5) => {
   const blogPostIds = [];
   const offset = count * page;
 
+  let blogPostTotal = 0;
+
   return knex('BlogPost')
-    .join('User', 'BlogPost.authorId', 'User.id')
-    .select(
-      'BlogPost.id',
-      'BlogPost.title',
-      'BlogPost.plug',
-      'BlogPost.published',
-      'User.firstName',
-      'User.lastName',
-    )
-    .orderBy('BlogPost.published', 'desc')
-    .limit(count)
-    .offset(offset)
+    .count('id')
+
+    .then((total) => {
+      blogPostTotal = total[0]['count(`id`)'];
+
+      return knex('BlogPost')
+        .join('User', 'BlogPost.authorId', 'User.id')
+        .select(
+          'BlogPost.id',
+          'BlogPost.title',
+          'BlogPost.plug',
+          'BlogPost.published',
+          'User.firstName',
+          'User.lastName',
+        )
+        .orderBy('BlogPost.published', 'desc')
+        .limit(count)
+        .offset(offset);
+    })
 
     .then((rows) => {
       for (let i = 0; i < rows.length; i += 1) {
@@ -287,8 +296,12 @@ exports.getBlogPostPreviews = (page, count = 5) => {
         previewMap[element.id].tags.push(element.name);
       }
 
-      const result = [];
-      Object.keys(previewMap).forEach(key => result.push(previewMap[key]));
+      // turn map to array
+      const result = {
+        blogPostTotal,
+        previews: [],
+      };
+      Object.keys(previewMap).forEach(key => result.previews.push(previewMap[key]));
       return result;
     })
 
@@ -296,4 +309,33 @@ exports.getBlogPostPreviews = (page, count = 5) => {
       logger.error(error);
       return null;
     });
+};
+
+/**
+ * Deletes the blog post from database given by its id.
+ * @param {Number} postId Id of the blog post to delete
+ */
+exports.deleteBlogPost = (postId) => {
+  logger.warn(`Attempting to delete blog post with id "${postId}"`);
+
+  return knex.transaction((trx) => {
+    logger.debug('Removing tags from blog post...');
+
+    return knex('BlogPostTagJunction')
+      .transacting(trx)
+      .where('blogPostId', postId)
+      .del()
+
+      .then(() => {
+        logger.debug('Removing blog post itself...');
+        return knex('BlogPost')
+          .transacting(trx)
+          .where('id', postId)
+          .del();
+      })
+
+      .then(trx.commit)
+
+      .catch(trx.rollback);
+  });
 };
