@@ -10,7 +10,6 @@ const logRequest = require('./middleware/logRequest');
 const prepareRequest = require('./middleware/prepareRequest');
 const parseAuthInfo = require('./middleware/parseAuthInfo');
 
-const userRouter = require('./routes/user');
 const postRouter = require('./routes/post');
 const loginRouter = require('./routes/login');
 const refreshRouter = require('./routes/refresh');
@@ -33,7 +32,6 @@ api.use(logRequest);
 api.use(prepareRequest);
 api.use(parseAuthInfo);
 
-api.use(apiVersionSubPath, userRouter);
 api.use(apiVersionSubPath, postRouter);
 api.use(apiVersionSubPath, loginRouter);
 api.use(apiVersionSubPath, refreshRouter);
