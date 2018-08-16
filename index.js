@@ -13,6 +13,7 @@ const parseAuthInfo = require('./middleware/parseAuthInfo');
 const postRouter = require('./routes/post');
 const loginRouter = require('./routes/login');
 const refreshRouter = require('./routes/refresh');
+const tagRouter = require('./routes/tag');
 
 const api = express();
 const PORT = 9002;
@@ -35,6 +36,7 @@ api.use(parseAuthInfo);
 api.use(apiVersionSubPath, postRouter);
 api.use(apiVersionSubPath, loginRouter);
 api.use(apiVersionSubPath, refreshRouter);
+api.use(apiVersionSubPath, tagRouter);
 
 // send 404 for all other requests
 api.get('*', (req, res) => {

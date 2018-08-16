@@ -4,7 +4,9 @@ const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const bcrypt = require('bcrypt');
 const moment = require('moment');
-let knex = require('knex');
+const knexCreator = require('knex');
+
+let knex = {};
 
 const { BreakError } = require('../../models/BreakErrors');
 const logger = require('../../services/logger').getLogger();
@@ -47,8 +49,7 @@ exports.init = function init(initialUser) {
       wasCreated = true;
     }
 
-    /* eslint global-require: "off" */
-    knex = require('knex')({
+    knex = knexCreator({
       client: 'sqlite3',
       connection: {
         filename: dbFilePath,
@@ -114,17 +115,12 @@ exports.getRegisteredUser = (username, plainPassword) => {
       return bcrypt.compare(plainPassword, bcryptHash);
     })
 
-    .then(passwordMatch => (passwordMatch ? user : null))
-
-    .catch((error) => {
-      logger.error(error);
-      return null;
-    });
+    .then(passwordMatch => (passwordMatch ? user : null));
 };
 
 exports.saveRefreshToken = (refreshToken, userId) => {
   if (!refreshToken || !userId) {
-    return Promise.reject(new Error('invalid parameters'));
+    return Promise.reject(new BreakError('invalid parameters'));
   }
 
   return knex.transaction(trx =>
@@ -155,7 +151,7 @@ exports.doesUserExist = nickname =>
 
 exports.getUserByNickname = (nickname) => {
   if (!nickname) {
-    return Promise.reject(new Error('nickname parameter required!'));
+    return Promise.reject(new BreakError('nickname parameter required!'));
   }
 
   return knex('User').where({ nickname })
@@ -169,7 +165,7 @@ exports.getUserByNickname = (nickname) => {
 
 exports.getRefreshToken = (userId) => {
   if (!userId) {
-    return Promise.reject(new Error('invalid parameters'));
+    return Promise.reject(new BreakError('invalid parameters'));
   }
 
   return knex('RefreshToken').where({ userId })
@@ -219,15 +215,6 @@ exports.getBlogPostById = (postId) => {
       }
 
       return blogPost;
-    })
-
-    .catch((error) => {
-      if (error instanceof BreakError) {
-        logger.info(error.message);
-      } else {
-        logger.error(error);
-      }
-      return null;
     });
 };
 
@@ -301,13 +288,8 @@ exports.getBlogPostPreviews = (page, count = 5) => {
         blogPostTotal,
         previews: [],
       };
-      Object.keys(previewMap).forEach(key => result.previews.push(previewMap[key]));
+      blogPostIds.forEach(id => result.previews.push(previewMap[id]));
       return result;
-    })
-
-    .catch((error) => {
-      logger.error(error);
-      return null;
     });
 };
 
@@ -331,6 +313,55 @@ exports.deleteBlogPost = (postId) => {
         return knex('BlogPost')
           .transacting(trx)
           .where('id', postId)
+          .del();
+      })
+
+      .then(trx.commit)
+
+      .catch(trx.rollback);
+  });
+};
+
+exports.insertBlogPost = (blogPost) => {
+  logger.info(`adding new blog post: ${blogPost.toString()}`);
+  // TODO
+};
+
+exports.getTags = () => {
+  logger.debug('getting all tags');
+
+  return knex.select('id', 'name').from('Tag');
+};
+
+exports.insertTag = (tagName) => {
+  logger.info(`adding new tag "${tagName}"`);
+
+  return knex.select('id').from('Tag').where({ name: tagName })
+    .then((rows) => {
+      if (rows.length > 0) {
+        return Promise.reject(new BreakError('Tag already exists!'));
+      }
+
+      return knex('Tag').insert({ name: tagName });
+    });
+};
+
+exports.deleteTag = (tagId) => {
+  logger.info(`deleting tag with id '${tagId}'`);
+
+  return knex.transaction((trx) => {
+    logger.debug('Removing tag from blog posts...');
+
+    return knex('BlogPostTagJunction')
+      .transacting(trx)
+      .where('tagId', tagId)
+      .del()
+
+      .then(() => {
+        logger.debug('Removing tag itself...');
+        return knex('Tag')
+          .transacting(trx)
+          .where('id', tagId)
           .del();
       })
 
