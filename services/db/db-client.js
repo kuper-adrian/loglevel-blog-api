@@ -145,16 +145,14 @@ exports.saveRefreshToken = (refreshToken, userId) => {
       .catch(trx.rollback));
 };
 
-exports.doesUserExist = nickname =>
-  knex('User').where({ nickname })
-    .then(rows => rows.length === 1);
-
 exports.getUserByNickname = (nickname) => {
   if (!nickname) {
     return Promise.reject(new BreakError('nickname parameter required!'));
   }
 
-  return knex('User').where({ nickname })
+  return knex('User')
+    .select('id', 'nickname', 'firstName', 'lastName', 'email')
+    .where({ nickname })
     .then((rows) => {
       if (rows.length === 0) {
         return null;
@@ -322,17 +320,78 @@ exports.deleteBlogPost = (postId) => {
   });
 };
 
+/**
+ * Adds a blog post to the database.
+ * @param {Object} blogPost blog post to be added to database
+ */
 exports.insertBlogPost = (blogPost) => {
   logger.info(`adding new blog post: ${blogPost.toString()}`);
-  // TODO
+
+  const { nickname } = blogPost.author;
+
+  // ! TODO: wrap this inside a transaction!!!!
+  // first get user id for the foreign key
+  return knex('User')
+    .select('id')
+    .where({ nickname })
+
+    .then((rows) => {
+      if (rows.length === 0) {
+        throw new BreakError(`No id found for user with nickname '${nickname}'`);
+      }
+
+      // create object, that can be inserted into the database
+      const authorId = rows[0].id;
+      const insertObject = {
+        title: blogPost.title,
+        plug: blogPost.plug,
+        text: blogPost.text,
+        created: moment().toISOString(),
+        published: moment().toISOString(),
+        authorId,
+      };
+
+      // add blog post...
+      return knex('BlogPost')
+        .insert(insertObject);
+    })
+
+    .then((rows) => {
+      if (rows.length === 0) {
+        throw new BreakError('Blog post could not be inserted');
+      }
+
+      // prepare adding blog post - tag junctions
+      const [blogPostId] = rows;
+      const junctions = [];
+      const { tags } = blogPost;
+      
+      tags.forEach((tag) => {
+        junctions.push({
+          tagId: tag.id,
+          blogPostId,
+        });
+      });
+
+      // add junctions to database..
+      return knex('BlogPostTagJunction')
+        .insert(junctions);
+    });
 };
 
+/**
+ * Returns an array of all tags inside the database.
+ */
 exports.getTags = () => {
   logger.debug('getting all tags');
 
   return knex.select('id', 'name').from('Tag');
 };
 
+/**
+ * Adds a new tag under the given name to the database.
+ * @param {string} tagName Name of the new tag
+ */
 exports.insertTag = (tagName) => {
   logger.info(`adding new tag "${tagName}"`);
 
@@ -346,6 +405,10 @@ exports.insertTag = (tagName) => {
     });
 };
 
+/**
+ * Deletes the tag under the given id from the database.
+ * @param {Number} tagId Id of the tag
+ */
 exports.deleteTag = (tagId) => {
   logger.info(`deleting tag with id '${tagId}'`);
 

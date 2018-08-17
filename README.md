@@ -1,5 +1,10 @@
 # Loglevel: "blog" - Back-end API
 
+## TODO
+
+- Blog post searching
+- /tag:id route to infos about blog posts that use the tag in order to allow safer deleting
+
 ## Deploy
 
 ### Create JWT certs:

@@ -42,7 +42,7 @@ module.exports = /* options => */ (req, res, next) => {
     jwtPayload = jwt.verify(accessToken, secrets.publicJwtCert, { algorithms: ['RS256'] });
   } catch (err) {
     logger.info('access token invalid!');
-    logger.debug(err);
+    logger.debug(err.message);
     setAuthInfo(req, undefined);
     next();
     return;
@@ -50,11 +50,11 @@ module.exports = /* options => */ (req, res, next) => {
 
   // valid access token send with request!
   // check if user is in database
-  dbClient.doesUserExist(jwtPayload.nick)
-    .then((result) => {
-      if (result) {
+  dbClient.getUserByNickname(jwtPayload.nick)
+    .then((user) => {
+      if (user) {
         // user has valid token and exists!
-        setAuthInfo(req, jwtPayload.nick);
+        setAuthInfo(req, user);
         next();
       } else {
         setAuthInfo(req, undefined);

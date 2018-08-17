@@ -2,7 +2,7 @@ const express = require('express');
 const dbClient = require('../services/db/db-client');
 const tokenService = require('../services/tokens');
 const logger = require('../services/logger').getLogger();
-const { FaultError } = require('../models/BreakErrors');
+const { BreakError, FaultError } = require('../models/BreakErrors');
 
 const router = express.Router();
 
@@ -32,6 +32,9 @@ router.post('/login', (req, res) => {
       if (error instanceof FaultError) {
         logger.info(error.message);
         res.status(error.httpStatus).send(error.message);
+      } else if (error instanceof BreakError) {
+        logger.info(error);
+        res.status(400).send(error.message);
       } else {
         logger.error(error.message);
         res.status(500).send();

@@ -1,11 +1,76 @@
 /* eslint no-param-reassign: ["error", { "props": false }] */
 
 const express = require('express');
+
 const checkAccess = require('../middleware/checkAccess');
+const validateBody = require('../middleware/validateBody');
+
 const dbClient = require('../services/db/db-client');
 const logger = require('../services/logger').getLogger();
 
+const { BreakError } = require('../models/BreakErrors');
+
 const router = express.Router();
+
+// schema, that objects passed to put route have to satisfy
+const PUT_BODY_SCHEMA = {
+  id: {
+    type: 'number',
+  },
+  title: {
+    type: 'string',
+    optional: true,
+  },
+  plug: {
+    type: 'string',
+    optional: true,
+  },
+  text: {
+    type: 'string',
+    optional: true,
+  },
+  tags: {
+    type: 'array',
+    itemType: {
+      type: 'object',
+      schema: {
+        id: {
+          type: 'number',
+        },
+        name: {
+          type: 'string',
+        },
+      },
+    },
+  },
+};
+
+// schema, that objects passed to post route have to satisfy
+const POST_BODY_SCHEMA = {
+  title: {
+    type: 'string',
+  },
+  plug: {
+    type: 'string',
+  },
+  text: {
+    type: 'string',
+  },
+  tags: {
+    type: 'array',
+    itemType: {
+      type: 'object',
+      schema: {
+        id: {
+          type: 'number',
+        },
+        name: {
+          type: 'string',
+        },
+      },
+    },
+  },
+};
 
 router.route('/post/:id')
   .get((req, res) => {
@@ -13,7 +78,18 @@ router.route('/post/:id')
 
     dbClient.getBlogPostById(postId)
       .then((blogPost) => {
-        blogPost.actions = {};
+        const result = {
+          id: blogPost.id,
+          title: blogPost.title,
+          publishedAt: blogPost.published,
+          plug: blogPost.plug,
+          text: blogPost.text,
+          tags: blogPost.tags,
+          author: {
+            name: `${blogPost.firstName} ${blogPost.lastName}`,
+          },
+          actions: {},
+        };
 
         // if user is authenticated, add possible actions
         if (req.loglevel.auth.user) {
@@ -29,18 +105,26 @@ router.route('/post/:id')
           };
         }
 
-        res.status(200).json(blogPost);
+        res.status(200).json(result);
       })
 
       .catch((error) => {
-        logger.error(error);
-        res.status(200).send(error.message);
+        if (error instanceof BreakError) {
+          logger.info(error);
+          res.status(400).send(error.message);
+        } else {
+          logger.error(error);
+          res.status(500).send();
+        }
       });
   })
 
-  .put(checkAccess, (req, res) => {
+  .put(checkAccess, validateBody({ schema: PUT_BODY_SCHEMA }), (req, res) => {
     const postId = req.params.id;
     // TODO get json from body and update database
+
+    logger.debug('valid object given!');
+
     res.send('TODO put blog post');
   })
 
@@ -63,8 +147,13 @@ router.route('/post/:id')
       })
 
       .catch((error) => {
-        logger.error(error);
-        res.status(500).send('Unable to delete post');
+        if (error instanceof BreakError) {
+          logger.info(error);
+          res.status(400).send(error.message);
+        } else {
+          logger.error(error);
+          res.status(500).send();
+        }
       });
   });
 
@@ -122,8 +211,42 @@ router.route('/post')
       })
 
       .catch((error) => {
-        logger.error(error);
-        res.status(500).send();
+        if (error instanceof BreakError) {
+          logger.info(error);
+          res.status(400).send(error.message);
+        } else {
+          logger.error(error);
+          res.status(500).send();
+        }
+      });
+  })
+
+  .post(checkAccess, validateBody({ schema: POST_BODY_SCHEMA }), (req, res) => {
+    // getting here means:
+    // - valid post object in request body
+    // - user is authenticated and authorized
+
+    logger.info(`request to add blog post: ${JSON.stringify(req.body)}`);
+
+    const blogPost = req.body;
+    blogPost.author = {
+      nickname: req.loglevel.auth.user.nickname,
+    };
+
+    dbClient.insertBlogPost(blogPost)
+      .then(() => {
+        logger.info();
+        res.status(200).send();
+      })
+
+      .catch((error) => {
+        if (error instanceof BreakError) {
+          logger.info(error);
+          res.status(400).send(error.message);
+        } else {
+          logger.error(error);
+          res.status(500).send();
+        }
       });
   });
 
