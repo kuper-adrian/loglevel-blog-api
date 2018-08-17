@@ -315,7 +315,6 @@ exports.deleteBlogPost = (postId) => {
       })
 
       .then(trx.commit)
-
       .catch(trx.rollback);
   });
 };
@@ -329,54 +328,63 @@ exports.insertBlogPost = (blogPost) => {
 
   const { nickname } = blogPost.author;
 
-  // ! TODO: wrap this inside a transaction!!!!
-  // first get user id for the foreign key
-  return knex('User')
-    .select('id')
-    .where({ nickname })
+  return knex.transaction((trx) => {
+    logger.debug('started transaction');
 
-    .then((rows) => {
-      if (rows.length === 0) {
-        throw new BreakError(`No id found for user with nickname '${nickname}'`);
-      }
+    // first get user id for the foreign key
+    return knex('User')
+      .transacting(trx)
+      .select('id')
+      .where({ nickname })
 
-      // create object, that can be inserted into the database
-      const authorId = rows[0].id;
-      const insertObject = {
-        title: blogPost.title,
-        plug: blogPost.plug,
-        text: blogPost.text,
-        created: moment().toISOString(),
-        published: moment().toISOString(),
-        authorId,
-      };
+      .then((rows) => {
+        if (rows.length === 0) {
+          throw new BreakError(`No id found for user with nickname '${nickname}'`);
+        }
 
-      // add blog post...
-      return knex('BlogPost')
-        .insert(insertObject);
-    })
+        // create object, that can be inserted into the database
+        const authorId = rows[0].id;
+        const insertObject = {
+          title: blogPost.title,
+          plug: blogPost.plug,
+          text: blogPost.text,
+          created: moment().toISOString(),
+          published: moment().toISOString(),
+          authorId,
+        };
 
-    .then((rows) => {
-      if (rows.length === 0) {
-        throw new BreakError('Blog post could not be inserted');
-      }
+        // add blog post...
+        return knex('BlogPost')
+          .transacting(trx)
+          .insert(insertObject);
+      })
 
-      // prepare adding blog post - tag junctions
-      const [blogPostId] = rows;
-      const junctions = [];
-      const { tags } = blogPost;
-      
-      tags.forEach((tag) => {
-        junctions.push({
-          tagId: tag.id,
-          blogPostId,
+      .then((rows) => {
+        if (rows.length === 0) {
+          throw new BreakError('Blog post could not be inserted');
+        }
+
+        // prepare adding blog post - tag junctions
+        const [blogPostId] = rows;
+        const junctions = [];
+        const { tags } = blogPost;
+
+        tags.forEach((tag) => {
+          junctions.push({
+            tagId: tag.id,
+            blogPostId,
+          });
         });
-      });
 
-      // add junctions to database..
-      return knex('BlogPostTagJunction')
-        .insert(junctions);
-    });
+        // add junctions to database..
+        return knex('BlogPostTagJunction')
+          .transacting(trx)
+          .insert(junctions);
+      })
+
+      .then(trx.commit)
+      .catch(trx.rollback);
+  });
 };
 
 /**
