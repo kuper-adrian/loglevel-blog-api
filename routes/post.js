@@ -14,9 +14,6 @@ const router = express.Router();
 
 // schema, that objects passed to put route have to satisfy
 const PUT_BODY_SCHEMA = {
-  id: {
-    type: 'number',
-  },
   title: {
     type: 'string',
     optional: true,
@@ -31,6 +28,7 @@ const PUT_BODY_SCHEMA = {
   },
   tags: {
     type: 'array',
+    optional: true,
     itemType: {
       type: 'object',
       schema: {
@@ -73,6 +71,7 @@ const POST_BODY_SCHEMA = {
 };
 
 router.route('/post/:id')
+
   .get((req, res) => {
     const postId = req.params.id;
 
@@ -121,11 +120,28 @@ router.route('/post/:id')
 
   .put(checkAccess, validateBody({ schema: PUT_BODY_SCHEMA }), (req, res) => {
     const postId = req.params.id;
-    // TODO get json from body and update database
+    const blogPost = req.body;
 
-    logger.debug('valid object given!');
+    // add infos to blogPost object
+    blogPost.id = postId;
+    blogPost.author = {
+      id: req.loglevel.auth.user.id,
+    };
 
-    res.send('TODO put blog post');
+    dbClient.updateBlogPost(blogPost)
+      .then(() => {
+        res.status(200).send('Blog post updated successfully!');
+      })
+
+      .catch((error) => {
+        if (error instanceof BreakError) {
+          logger.info(error);
+          res.status(400).send(error.message);
+        } else {
+          logger.error(error);
+          res.status(500).send();
+        }
+      });
   })
 
   .delete(checkAccess, (req, res) => {

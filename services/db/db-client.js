@@ -387,12 +387,114 @@ exports.insertBlogPost = (blogPost) => {
   });
 };
 
+exports.updateBlogPost = (blogPost) => {
+  if (!blogPost || !blogPost.id || blogPost.author || blogPost.author.id) {
+    return Promise.reject(new BreakError('invalid arguments'));
+  }
+
+  logger.info(`Trying to update blog post with id '${blogPost.id}'`);
+
+  const blogPostId = blogPost.id;
+  const authorId = blogPost.author.id;
+
+  return knex.transaction((trx) => {
+    logger.debug('started transaction...');
+
+    return knex('BlogPost')
+      .transacting(trx)
+      .select('authorId')
+      .where({ blogPostId })
+
+      .then((rows) => {
+        if (rows.length === 0) {
+          throw new BreakError(`No blog post found with id '${blogPostId}'`);
+        }
+
+        if (rows[0].authorId !== authorId) {
+          throw new BreakError('Blog post was written by different author!');
+        }
+
+        // create object, that is used to update database entry
+        const updateObject = {
+          published: moment().toISOString(),
+        };
+
+        // add only given properties to update object
+        if (blogPost.title) {
+          updateObject.title = blogPost.title;
+        }
+        if (blogPost.plug) {
+          updateObject.plug = blogPost.plug;
+        }
+        if (blogPost.text) {
+          updateObject.text = blogPost.text;
+        }
+
+        // update blog post...
+        logger.debug('updating blog post columns...');
+
+        return knex('BlogPost')
+          .transacting(trx)
+          .where('id', blogPostId)
+          .update(updateObject);
+      })
+
+      .then((rows) => {
+        if (rows.length === 0) {
+          throw new BreakError('Blog post could not be updated');
+        }
+
+        // check if tags have to be updated...
+        if (!blogPost.tags) {
+          // ... and simply resolve promise when not
+          return Promise.resolve();
+        }
+
+        // remove current junctions
+        logger.debug('removing old post tag junctions...');
+
+        return knex('BlogPostTagJunction')
+          .transacting(trx)
+          .where('blogPostId', blogPostId)
+          .del();
+      })
+
+      .then(() => {
+        // check if tags have to be updated...
+        if (!blogPost.tags) {
+          // ... and simply resolve promise when not
+          return Promise.resolve();
+        }
+
+        // prepare adding blog post - tag junctions
+        const junctions = [];
+        const { tags } = blogPost;
+
+        tags.forEach((tag) => {
+          junctions.push({
+            tagId: tag.id,
+            blogPostId,
+          });
+        });
+
+        // add junctions to database..
+        logger.debug('adding new post tag junctions...');
+
+        return knex('BlogPostTagJunction')
+          .transacting(trx)
+          .insert(junctions);
+      })
+
+      .then(trx.commit)
+      .catch(trx.rollback);
+  });
+};
+
 /**
  * Returns an array of all tags inside the database.
  */
 exports.getTags = () => {
   logger.debug('getting all tags');
-
   return knex.select('id', 'name').from('Tag');
 };
 
