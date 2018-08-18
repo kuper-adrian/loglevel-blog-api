@@ -388,11 +388,11 @@ exports.insertBlogPost = (blogPost) => {
 };
 
 exports.updateBlogPost = (blogPost) => {
-  if (!blogPost || !blogPost.id || blogPost.author || blogPost.author.id) {
+  logger.info(`Trying to update blog post with id '${blogPost.id}'`);
+
+  if (!blogPost || !blogPost.id || !blogPost.author || !blogPost.author.id) {
     return Promise.reject(new BreakError('invalid arguments'));
   }
-
-  logger.info(`Trying to update blog post with id '${blogPost.id}'`);
 
   const blogPostId = blogPost.id;
   const authorId = blogPost.author.id;
@@ -403,7 +403,7 @@ exports.updateBlogPost = (blogPost) => {
     return knex('BlogPost')
       .transacting(trx)
       .select('authorId')
-      .where({ blogPostId })
+      .where({ id: blogPostId })
 
       .then((rows) => {
         if (rows.length === 0) {

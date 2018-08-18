@@ -123,13 +123,14 @@ router.route('/post/:id')
     const blogPost = req.body;
 
     // add infos to blogPost object
-    blogPost.id = postId;
+    blogPost.id = Number(postId);
     blogPost.author = {
       id: req.loglevel.auth.user.id,
     };
 
     dbClient.updateBlogPost(blogPost)
       .then(() => {
+        logger.info('Blog post added!');
         res.status(200).send('Blog post updated successfully!');
       })
 
