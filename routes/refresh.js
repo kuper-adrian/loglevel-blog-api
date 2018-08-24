@@ -2,13 +2,14 @@ const express = require('express');
 const tokenService = require('../services/tokens');
 const logger = require('../services/logger').getLogger();
 const { FaultError } = require('../models/BreakErrors');
+const { ApiResult } = require('../models/ApiResult');
 
 const router = express.Router();
 
 router.route('/refresh')
   .post((req, res) => {
     if (!req.body.username || !req.body.refreshToken) {
-      res.send(400).send('username and refresh token required');
+      res.send(400).json(new ApiResult(false, 'username and refresh token required'));
       return;
     }
 
@@ -30,10 +31,10 @@ router.route('/refresh')
       .catch((error) => {
         if (error instanceof FaultError) {
           logger.info(error.message);
-          res.status(error.httpStatus).send(error.message);
+          res.status(error.httpStatus).json(new ApiResult(false, error.message));
         } else {
           logger.error(error);
-          res.status(500).send();
+          res.status(500).json(new ApiResult(false, 'Unable to refresh token'));
         }
       });
   });

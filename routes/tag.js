@@ -3,6 +3,7 @@ const checkAccess = require('../middleware/checkAccess');
 const dbClient = require('../services/db/db-client');
 const logger = require('../services/logger').getLogger();
 const { BreakError } = require('../models/BreakErrors');
+const { ApiResult } = require('../models/ApiResult');
 
 const router = express.Router();
 
@@ -12,12 +13,12 @@ router.route('/tag')
     dbClient.getTags()
       .then((tags) => {
         // ... and return them
-        res.status(200).send(tags);
+        res.status(200).json(new ApiResult(true, '', tags));
       })
 
       .catch((error) => {
         logger.error(error);
-        res.status(500).send();
+        res.status(500).json(new ApiResult(false));
       });
   })
 
@@ -26,7 +27,7 @@ router.route('/tag')
 
     if (tagName === undefined || tagName === null || typeof tagName !== 'string') {
       logger.info(`invalid tag name '${tagName}'`);
-      res.status(400).send('invalid tag name');
+      res.status(400).json(new ApiResult(false, 'invalid tag name'));
       return;
     }
 
@@ -34,18 +35,18 @@ router.route('/tag')
       .then((rowCount) => {
         if (rowCount === 0) {
           logger.info('No new tags added...');
-          res.status(400).send('No tags saved');
+          res.status(400).json(new ApiResult(false, 'No tags saved'));
         } else {
-          res.status(200).send(`Tag '${tagName}' successfully created!`);
+          res.status(200).json(new ApiResult(true, `Tag '${tagName}' successfully created!`));
         }
       })
 
       .catch((error) => {
         if (error instanceof BreakError) {
           logger.info(error);
-          res.status(400).send(error.message);
+          res.status(400).json(new ApiResult(false, error.message));
         } else {
-          res.status(500).send(`Unable to save tag '${tagName}'`);
+          res.status(500).json(new ApiResult(false, `Unable to save tag '${tagName}'`));
         }
       });
   })
@@ -55,22 +56,22 @@ router.route('/tag')
 
     if (tagId === undefined || tagId === null || typeof tagId !== 'number') {
       logger.info(`invalid tag id '${tagId}'`);
-      res.status(401).send('invalid tag id');
+      res.status(401).json(new ApiResult(false, 'invalid tag id'));
       return;
     }
 
     dbClient.deleteTag(tagId)
       .then((rowCount) => {
         if (rowCount === 0) {
-          res.status(200).send(`No tag found under id '${tagId}'. No tags deleted.`);
+          res.status(200).json(new ApiResult(true, `No tag found under id '${tagId}'. No tags deleted.`));
         } else {
-          res.status(200).send('Tag deleted');
+          res.status(200).json(new ApiResult(true, 'Tag deleted'));
         }
       })
 
       .catch((error) => {
         logger.error(error);
-        res.status(500).send('Could not delete tag');
+        res.status(500).json(new ApiResult(false, 'Could not delete tag'));
       });
   });
 

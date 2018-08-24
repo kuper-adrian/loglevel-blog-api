@@ -9,6 +9,7 @@ const dbClient = require('../services/db/db-client');
 const logger = require('../services/logger').getLogger();
 
 const { BreakError } = require('../models/BreakErrors');
+const { ApiResult } = require('../models/ApiResult');
 
 const router = express.Router();
 
@@ -104,16 +105,16 @@ router.route('/post/:id')
           };
         }
 
-        res.status(200).json(result);
+        res.status(200).json(new ApiResult(true, '', result));
       })
 
       .catch((error) => {
         if (error instanceof BreakError) {
           logger.info(error);
-          res.status(400).send(error.message);
+          res.status(400).json(new ApiResult(false, error.message));
         } else {
           logger.error(error);
-          res.status(500).send();
+          res.status(500).json(new ApiResult(false, 'Unable to blog post'));
         }
       });
   })
@@ -131,16 +132,16 @@ router.route('/post/:id')
     dbClient.updateBlogPost(blogPost)
       .then(() => {
         logger.info('Blog post added!');
-        res.status(200).send('Blog post updated successfully!');
+        res.status(200).json(new ApiResult(true, 'Blog post updated successfully!'));
       })
 
       .catch((error) => {
         if (error instanceof BreakError) {
           logger.info(error);
-          res.status(400).send(error.message);
+          res.status(400).json(new ApiResult(false, error.message));
         } else {
           logger.error(error);
-          res.status(500).send();
+          res.status(500).json(new ApiResult(false, 'Unable to update blog post'));
         }
       });
   })
@@ -148,7 +149,7 @@ router.route('/post/:id')
   .delete(checkAccess, (req, res) => {
     const postId = req.params.id;
     if (!postId) {
-      res.status(400).send('no post id given');
+      res.status(400).json(new ApiResult(false, 'no post id given'));
       return;
     }
 
@@ -157,19 +158,19 @@ router.route('/post/:id')
         // check if a blog post was actually deleted or not
         if (count === 0) {
           logger.debug('no posts found');
-          res.status(200).send('post not found');
+          res.status(400).json(new ApiResult(false, 'post not found'));
         } else {
-          res.status(200).send('Post successfully deleted');
+          res.status(200).json(new ApiResult(true, 'Post successfully deleted'));
         }
       })
 
       .catch((error) => {
         if (error instanceof BreakError) {
           logger.info(error);
-          res.status(400).send(error.message);
+          res.status(400).json(new ApiResult(false, error.message));
         } else {
           logger.error(error);
-          res.status(500).send();
+          res.status(500).json(new ApiResult(false, 'Unable to delete blog post'));
         }
       });
   });
@@ -211,7 +212,7 @@ router.route('/post')
             },
           };
 
-          // add actions for authnticated users
+          // add actions for authenticated users
           if (req.loglevel.auth.user) {
             preview.actions.update = {
               href: `post/${preview.id}`,
@@ -224,16 +225,16 @@ router.route('/post')
           }
         });
 
-        res.status(200).send(result);
+        res.status(200).json(new ApiResult(true, '', result));
       })
 
       .catch((error) => {
         if (error instanceof BreakError) {
           logger.info(error);
-          res.status(400).send(error.message);
+          res.status(400).json(new ApiResult(false, error.message));
         } else {
           logger.error(error);
-          res.status(500).send();
+          res.status(500).json(new ApiResult(false, 'Unable to get blog posts'));
         }
       });
   })
@@ -253,16 +254,16 @@ router.route('/post')
     dbClient.insertBlogPost(blogPost)
       .then(() => {
         logger.info();
-        res.status(200).send();
+        res.status(200).json(new ApiResult(true, 'Successfully created blog post!'));
       })
 
       .catch((error) => {
         if (error instanceof BreakError) {
           logger.info(error);
-          res.status(400).send(error.message);
+          res.status(400).json(new ApiResult(false, error.message));
         } else {
           logger.error(error);
-          res.status(500).send();
+          res.status(500).json(new ApiResult(false, 'Unable to create blog post.'));
         }
       });
   });

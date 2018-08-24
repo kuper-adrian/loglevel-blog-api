@@ -3,12 +3,14 @@ const dbClient = require('../services/db/db-client');
 const tokenService = require('../services/tokens');
 const logger = require('../services/logger').getLogger();
 const { BreakError, FaultError } = require('../models/BreakErrors');
+const { ApiResult } = require('../models/ApiResult');
 
 const router = express.Router();
 
 router.post('/login', (req, res) => {
   if (!req.body || !req.body.username || !req.body.password) {
-    res.status(400).send('Username and password required!');
+    const result = new ApiResult(false, 'Username and password required!');
+    res.status(400).json(result);
     return;
   }
 
@@ -24,20 +26,21 @@ router.post('/login', (req, res) => {
       if (tokens) {
         // refresh token is saved in database!
         // send tokens to client
-        res.status(200).json(tokens);
+        const result = new ApiResult(true, '', tokens);
+        res.status(200).json(result);
       }
     })
 
     .catch((error) => {
       if (error instanceof FaultError) {
         logger.info(error.message);
-        res.status(error.httpStatus).send(error.message);
+        res.status(error.httpStatus).json(new ApiResult(false, error.message));
       } else if (error instanceof BreakError) {
-        logger.info(error);
-        res.status(400).send(error.message);
+        logger.info(error.message);
+        res.status(400).json(new ApiResult(false, error.message));
       } else {
-        logger.error(error.message);
-        res.status(500).send();
+        logger.error(error);
+        res.status(500).json(new ApiResult(false));
       }
     });
 });

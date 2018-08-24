@@ -1,6 +1,7 @@
 /* eslint valid-typeof: 0 */
 
 const logger = require('../services/logger').getLogger();
+const { ApiResult } = require('../models/ApiResult');
 
 const validate = (schema, object) => {
   let isValid = true;
@@ -51,7 +52,8 @@ module.exports = options => (req, res, next) => {
   logger.debug('Entered middleware: validateBody');
 
   if (!options || !options.schema) {
-    res.status(500).send('no schema provided for validation');
+    logger.error('No schema provided for validation!!!');
+    res.status(500).json(new ApiResult(false, 'no schema provided for validation'));
     return;
   }
 
@@ -66,16 +68,10 @@ module.exports = options => (req, res, next) => {
       next();
     } else {
       logger.debug('validation failed');
-
-      const answer = {
-        success: false,
-        message: 'invalid request body',
-        requiredBodySchema: schema,
-      };
-      res.status(400).json(answer);
+      res.status(400).json(new ApiResult(false, 'invalid request body', { requiredBodySchema: schema }));
     }
   } catch (error) {
     logger.error(error);
-    res.status(500).send('body validation failed');
+    res.status(500).json(new ApiResult(false, 'body validation failed'));
   }
 };

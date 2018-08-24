@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const secrets = require('../services/secrets');
 const dbClient = require('../services/db/db-client');
 const logger = require('../services/logger').getLogger();
+const { ApiResult } = require('../models/ApiResult');
 
 const setAuthInfo = (req, user) => {
   req.loglevel.auth = {
@@ -63,6 +64,6 @@ module.exports = /* options => */ (req, res, next) => {
     })
     .catch((error) => {
       logger.error(error);
-      res.status(500).send();
+      res.status(500).json(new ApiResult(false));
     });
 };
