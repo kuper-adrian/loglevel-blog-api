@@ -1,7 +1,7 @@
 {
-  "name": "dev-null-api",
+  "name": "loglevel-blog-api",
   "version": "1.0.0",
-  "description": "Backend API for dev-null project",
+  "description": "Backend API for loglevel blog project",
   "main": "index.js",
   "scripts": {
     "debug": "nodemon --inspect index.js",
@@ -9,11 +9,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://Blooby@bitbucket.org/Blooby/dev-null-api.git"
+    "url": "git+https://github.com/kuper-adrian/loglevel-blog-api.git"
   },
   "author": "Adrian Kuper",
   "license": "ISC",
-  "homepage": "https://bitbucket.org/Blooby/dev-null-api#readme",
+  "homepage": "https://github.com/kuper-adrian/loglevel-blog-api",
   "dependencies": {
     "bcrypt": "^2.0.1",
     "body-parser": "^1.18.3",
