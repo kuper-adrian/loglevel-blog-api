@@ -252,9 +252,16 @@ router.route('/post')
     };
 
     dbClient.insertBlogPost(blogPost)
-      .then(() => {
-        logger.info();
-        res.status(200).json(new ApiResult(true, 'Successfully created blog post!'));
+      .then((ids) => {
+        if (ids.length === 0) {
+          logger.warn('Insert statement returned no ids');
+          res.status(400).json(new ApiResult(false, 'Could not insert new blog post'));
+        } else {
+          const [blogPostId] = ids;
+
+          logger.info(`Added blog post with id "${blogPostId}"`);
+          res.status(200).json(new ApiResult(true, 'Successfully created blog post!', { blogPostId }));
+        }
       })
 
       .catch((error) => {
