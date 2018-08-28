@@ -1,5 +1,10 @@
 /* eslint valid-typeof: 0 */
 
+/**
+ * Middleware that checks request body against a schema provided as an
+ * argument.
+ */
+
 const logger = require('../services/logger').getLogger();
 const { ApiResult } = require('../models/ApiResult');
 

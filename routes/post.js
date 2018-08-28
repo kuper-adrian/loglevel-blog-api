@@ -76,8 +76,10 @@ router.route('/post/:id')
   .get((req, res) => {
     const postId = req.params.id;
 
+    // get post with id from database ...
     dbClient.getBlogPostById(postId)
       .then((blogPost) => {
+        // ... then create result object ...
         const result = {
           id: blogPost.id,
           title: blogPost.title,
@@ -91,7 +93,7 @@ router.route('/post/:id')
           actions: {},
         };
 
-        // if user is authenticated, add possible actions
+        // ... and add possible actions, if user is authenticated.
         if (req.loglevel.auth.user) {
           blogPost.actions = {
             update: {
@@ -105,6 +107,7 @@ router.route('/post/:id')
           };
         }
 
+        // Finally return the result
         res.status(200).json(new ApiResult(true, '', result));
       })
 
@@ -129,9 +132,11 @@ router.route('/post/:id')
       id: req.loglevel.auth.user.id,
     };
 
+    // update blog post in database ...
     dbClient.updateBlogPost(blogPost)
       .then(() => {
-        logger.info('Blog post added!');
+        // ... and send result
+        logger.info('Blog post updated!');
         res.status(200).json(new ApiResult(true, 'Blog post updated successfully!'));
       })
 
