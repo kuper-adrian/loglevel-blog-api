@@ -43,8 +43,18 @@ api.get('*', (req, res) => {
   res.status(404).send('not found');
 });
 
+if (!cmdArgs.user) {
+  logger.warn('no nickname argument provided!');
+}
+
+if (!cmdArgs.password) {
+  logger.warn('no password argument provided!');
+}
+
 dbClient.init({ nickname: cmdArgs.user, password: cmdArgs.password })
   .then(() => {
+    logger.info('db initialisation finished!');
+
     secrets.init();
 
     api.listen(PORT, () => {
