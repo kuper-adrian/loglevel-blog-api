@@ -10,17 +10,27 @@ const setAuthInfo = (req, user) => {
   };
 };
 
+/**
+ * Middleware that handles authentication (but not authorization!).
+ * 
+ * @param {object} req express request object
+ * @param {object} res express respose object
+ * @param {object} next express next handler
+ */
 module.exports = /* options => */ (req, res, next) => {
   logger.debug('Entered middleware: parseAuthInfo');
 
+  // check if Authorization header was set...
   const authHeader = req.get('Authorization');
   if (!authHeader) {
+    // ... if not, user is not authenticated
     logger.debug('no auth header!');
     setAuthInfo(req, undefined);
     next();
     return;
   }
 
+  // check if auth header contents are valid
   const parts = authHeader.split('Bearer ');
   if (parts.length !== 2) {
     logger.debug('invalid header content');
@@ -29,6 +39,7 @@ module.exports = /* options => */ (req, res, next) => {
     return;
   }
 
+  // check for token
   const accessToken = parts[1];
   if (!accessToken) {
     logger.debug('no access token');
@@ -54,7 +65,7 @@ module.exports = /* options => */ (req, res, next) => {
   dbClient.getUserByNickname(jwtPayload.nick)
     .then((user) => {
       if (user) {
-        // user has valid token and exists!
+        // user has valid token and exists => user is authenticated!
         setAuthInfo(req, user);
         next();
       } else {
