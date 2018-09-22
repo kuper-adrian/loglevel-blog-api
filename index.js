@@ -14,6 +14,7 @@ const postRouter = require('./routes/post');
 const loginRouter = require('./routes/login');
 const refreshRouter = require('./routes/refresh');
 const tagRouter = require('./routes/tag');
+const hasAccessRouter = require('./routes/hasAccess');
 
 const api = express();
 const PORT = 9002;
@@ -37,6 +38,7 @@ api.use(apiVersionSubPath, postRouter);
 api.use(apiVersionSubPath, loginRouter);
 api.use(apiVersionSubPath, refreshRouter);
 api.use(apiVersionSubPath, tagRouter);
+api.use(apiVersionSubPath, hasAccessRouter);
 
 // send 404 for all other requests
 api.get('*', (req, res) => {
