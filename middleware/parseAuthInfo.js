@@ -12,7 +12,7 @@ const setAuthInfo = (req, user) => {
 
 /**
  * Middleware that handles authentication (but not authorization!).
- * 
+ *
  * @param {object} req express request object
  * @param {object} res express respose object
  * @param {object} next express next handler
