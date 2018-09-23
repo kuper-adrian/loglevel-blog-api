@@ -3,10 +3,10 @@ const { ApiResult } = require('../models/ApiResult');
 
 /**
  * Middlware that checks if the user is authorized.
- * 
+ *
  * For now (since no new users can be registered) if you're
  * logged in, you're authorized
- * 
+ *
  * @param {object} req express request
  * @param {object} res express response
  * @param {object} next express next handler
