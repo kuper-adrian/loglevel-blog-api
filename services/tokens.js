@@ -18,12 +18,12 @@ exports.generateNewTokens = (user) => {
 
   accessToken = jwt.sign(
     {
-      nick: user.nickname,
+      name: user.nickname,
     },
     secrets.privateJwtKey,
     {
       algorithm: 'RS256',
-      expiresIn: '10 minutes',
+      expiresIn: '1 minutes',
     },
   );
 

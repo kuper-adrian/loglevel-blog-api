@@ -9,7 +9,7 @@ const router = express.Router();
 router.route('/refresh')
   .post((req, res) => {
     if (!req.body.username || !req.body.refreshToken) {
-      res.send(400).json(new ApiResult(false, 'username and refresh token required'));
+      res.status(400).json(new ApiResult(false, 'username and refresh token required'));
       return;
     }
 
