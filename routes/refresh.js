@@ -25,7 +25,7 @@ router.route('/refresh')
       })
 
       .then((tokens) => {
-        res.status(200).json(tokens);
+        res.status(200).json(new ApiResult(true, null, tokens));
       })
 
       .catch((error) => {
