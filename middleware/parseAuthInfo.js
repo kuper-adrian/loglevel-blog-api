@@ -62,7 +62,7 @@ module.exports = /* options => */ (req, res, next) => {
 
   // valid access token send with request!
   // check if user is in database
-  dbClient.getUserByNickname(jwtPayload.nick)
+  dbClient.getUserByNickname(jwtPayload.name)
     .then((user) => {
       if (user) {
         // user has valid token and exists => user is authenticated!
